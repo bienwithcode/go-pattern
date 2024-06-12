@@ -14,25 +14,25 @@ func main() {
 	numArray := []int64{1, 3, 5, 6, 8, 20, 40, 60, 80, 100}
 
 	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	queue := initQueue(wg, numArray)
+	queue := initQueue(numArray)
 	var i int64
 	for i = 1; i <= numOfworkers; i++ {
 		wg.Add(1)
-		go square(wg, queue, i)
+		go func(name int64) {
+			defer wg.Done()
+			square(queue, name)
+		}(i)
 	}
 	wg.Wait()
 }
 
-func square(wg *sync.WaitGroup, queue <-chan int64, name int64) {
-	defer wg.Done()
+func square(queue <-chan int64, name int64) {
 	for v := range queue {
 		fmt.Printf("Worker %d is processing number %d . Resutlt %d \n", name, v, v*v)
 	}
 }
 
-func initQueue(wg *sync.WaitGroup, numberSlice []int64) <-chan int64 {
-	defer wg.Done()
+func initQueue(numberSlice []int64) <-chan int64 {
 	numberOfJobs := len(numberSlice)
 	queue := make(chan int64, 100)
 	go func() {
