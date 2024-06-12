@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"sync"
 )
 
 const numOfworkers int64 = 5
@@ -13,23 +13,26 @@ func main() {
 	// array init
 	numArray := []int64{1, 3, 5, 6, 8, 20, 40, 60, 80, 100}
 
-	queue := initQueue(numArray)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	queue := initQueue(wg, numArray)
 	var i int64
 	for i = 1; i <= numOfworkers; i++ {
-		go square(queue, i)
+		wg.Add(1)
+		go square(wg, queue, i)
 	}
-	time.Sleep(time.Minute * 5)
-
+	wg.Wait()
 }
 
-func square(queue <-chan int64, name int64) {
+func square(wg *sync.WaitGroup, queue <-chan int64, name int64) {
+	defer wg.Done()
 	for v := range queue {
 		fmt.Printf("Worker %d is processing number %d . Resutlt %d \n", name, v, v*v)
-		time.Sleep(time.Second)
 	}
 }
 
-func initQueue(numberSlice []int64) <-chan int64 {
+func initQueue(wg *sync.WaitGroup, numberSlice []int64) <-chan int64 {
+	defer wg.Done()
 	numberOfJobs := len(numberSlice)
 	queue := make(chan int64, 100)
 	go func() {
