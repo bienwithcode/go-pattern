@@ -9,11 +9,10 @@ func streamNumbers(numbers ...int) <-chan int {
 	c := make(chan int)
 
 	go func() {
-		for n := range numbers {
-			c <- numbers[n]
+		defer close(c)
+		for _, n := range numbers {
+			c <- n
 		}
-
-		close(c)
 	}()
 
 	return c
@@ -28,10 +27,10 @@ func sumAllStreams(streams ...<-chan int) <-chan int {
 
 	for i := 0; i < len(streams); i++ {
 		go func(s <-chan int) {
+			defer wc.Done()
 			for n := range s {
 				counter += n
 			}
-			wc.Done()
 		}(streams[i])
 	}
 
