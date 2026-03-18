@@ -3,42 +3,39 @@ package main
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 func streamNumbers(numbers ...int) <-chan int {
 	c := make(chan int)
-
 	go func() {
 		defer close(c)
 		for _, n := range numbers {
 			c <- n
 		}
 	}()
-
 	return c
 }
 
 func sumAllStreams(streams ...<-chan int) <-chan int {
 	sumChan := make(chan int)
-	counter := 0
+	var counter atomic.Int32
+
 	wc := new(sync.WaitGroup)
-
 	wc.Add(len(streams))
-
 	for i := 0; i < len(streams); i++ {
 		go func(s <-chan int) {
 			defer wc.Done()
 			for n := range s {
-				counter += n
+				counter.Add(int32(n))
 			}
 		}(streams[i])
 	}
 
 	go func() {
 		wc.Wait()
-		sumChan <- counter
+		sumChan <- int(counter.Load())
 	}()
-
 	return sumChan
 }
 
@@ -48,6 +45,5 @@ func main() {
 		streamNumbers(8, 8, 3, 3, 10, 12, 14),
 		streamNumbers(1, 1, 2, 2, 4, 4, 6),
 	)
-
 	fmt.Println(<-s)
 }
